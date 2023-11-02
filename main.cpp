@@ -61,10 +61,12 @@ Color traceRay(const Ray &r, Scene scene, int depth) {
     Vec3 lightDir = lightPos - hit.position;
     lightDir.normalize();
     Ray reflection = hit.getReflectedRay();
-    if (hit.material.reflectivity > 0) reflectedColor = traceRay(reflection, scene, depth-1);
+    Ray refraction = hit.getRefractedRay();
+    if (hit.material.reflectivity > 0) reflectedColor = traceRay(reflection, scene, depth - 1); // reflection
+    if (hit.material.transparency > 0) refractedColor = traceRay(refraction, scene, depth - 1);
     directColor =  hit.material.color * std::max(hit.normal* lightDir,0.0f);
     if (scene.intersect(hit.getShadowRay(lightPos), shadow)) directColor = Color(0.0f, 0.0f, 0.0f); // shadow
-    c = directColor + reflectedColor;
+    c = (1.0 - hit.material.reflectivity - hit.material.transparency) * directColor + hit.material.reflectivity * reflectedColor + hit.material.transparency * refractedColor;
 
     return c;
 }
@@ -81,7 +83,8 @@ int main() {
     Material redDiffuse = Material(Color(1.0f, 0.1f, 0.1f), 0.0f, 0.0f, 1.0f);
     Material blueDiffuse = Material(Color(0.0f, 0.2f, 0.9f), 0.0f, 0.0f, 1.0f);
     Material yellowReflective = Material(Color(1.0f, 0.6f, 0.1f), 0.2f, 0.0f, 1.0f);
-    Material transparent = Material(Color(1.0f, 1.0f, 1.0f), 0.2f, 0.8f, 1.3f);
+    Material redReflective = Material(Color(1.0f, 0.1f, 0.1f), 1.0f, 0.0f, 1.0f);
+    Material transparent = Material(Color(1.0f, 1.0f, 1.0f), 0.2f, 0.8f, 1.3f); //tired 0.4 / 0.6
 
     // Setup scene
     Scene scene;
@@ -122,10 +125,11 @@ int main() {
     // TODO: Uncomment to render reflective spheres
     scene.push(Sphere(Vec3(7.0f, 3.0f, 0.0f), 3.0f, yellowReflective));
     scene.push(Sphere(Vec3(9.0f, 10.0f, 0.0f), 3.0f, yellowReflective));
-
+    //scene.push(Sphere(Vec3(-7.0f, 3.0f, 0.0f), 3.0f, redReflective));
+    //scene.push(Sphere(Vec3(-9.0f, 10.0f, 0.0f), 3.0f, redReflective));
     // TODO: Uncomment to render refractive spheres
-    // scene.push(Sphere(Vec3(-7.0f, 3.0f, 0.0f), 3.0f, transparent));
-    // scene.push(Sphere(Vec3(-9.0f, 10.0f, 0.0f), 3.0f, transparent));
+    scene.push(Sphere(Vec3(-7.0f, 3.0f, 0.0f), 3.0f, transparent));
+    scene.push(Sphere(Vec3(-9.0f, 10.0f, 0.0f), 3.0f, transparent));
 
     // Setup camera
     Vec3 eye(0.0f, 10.0f, 30.0f);
@@ -142,15 +146,20 @@ int main() {
         for (int i = 0; i < imageWidth; ++i) {
 
             Color pixel;
-
             // Get center of pixel coordinate
-            float cx = ((float)i) + 0.5f;
-            float cy = ((float)j) + 0.5f;
+            for (int x = 0; x < 3; ++x) {
+                for (int y = 0; y < 3; ++y) {
 
-            // Get a ray and trace it
-            Ray r = camera.getRay(cx, cy);
-            pixel = traceRay(r, scene, depth);
+                    
+                    float cx = ((float)i) + (1 + 2 * x) / 6.0f + 2 * (uniform() - 0.5)/6.0f;
+                    float cy = ((float)j) + (1 + 2 * y) / 6.0f + 2 * (uniform() - 0.5)/6.0f;
 
+                    // Get a ray and trace it
+                    Ray r = camera.getRay(cx, cy);
+                    pixel += traceRay(r, scene, depth);
+                }
+            }
+            pixel *= (1.0f/9.0f); 
             // Write pixel value to image
             writeColor((j * imageWidth + i) * numChannels, pixel, pixels);
         }

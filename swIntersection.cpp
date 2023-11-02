@@ -25,10 +25,12 @@ Ray Intersection::getRefractedRay(void) {
 
     // TODO: Implement refraction
     // -------------------
-    Vec3 R = D;
+    float R = -D*N;
+    float c = 1 - (eta * eta) * (1 - R*R);
+    if (c < 0) return getReflectedRay();
+    Vec3 t = eta * D + (eta * R - sqrt(c))* N;
     // -------------------
-
-    return Ray(position, R, 0.01f, FLT_MAX);
+    return Ray(position, t, 0.01f, FLT_MAX);
 }
 
 } // namespace sw
