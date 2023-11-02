@@ -52,7 +52,7 @@ void writeColor(int index, Vec3 p, uint8_t *pixels) {
 }
 
 Color traceRay(const Ray &r, Scene scene, int depth) {
-    Color c, directColor, reflectedColor, refractedColor;
+    Color c, directColor,diffuseColor, reflectedColor, refractedColor;
     if (depth < 0) return c;
 
     Intersection hit, shadow;
@@ -63,8 +63,8 @@ Color traceRay(const Ray &r, Scene scene, int depth) {
     lightDir.normalize();
 
     directColor = Color(1.0f, 1.0f, 1.0f);
-
-    c = directColor;
+    diffuseColor = hit.material.color * std::max(hit.normal* lightDir,0.0f);
+    c = diffuseColor;
 
     return c;
 }
