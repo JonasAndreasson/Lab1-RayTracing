@@ -59,6 +59,9 @@ class Vec3 {
         m[2] *= l;
         return *this;
     }
+    float abs() const {
+        return std::sqrt(m[0] * m[0] + m[1] * m[1] + m[2] * m[2]);
+    }
 
   public:
     float m[3]{0.0f, 0.0f, 0.0f};
